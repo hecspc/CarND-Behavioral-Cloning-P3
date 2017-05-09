@@ -2,33 +2,32 @@ import csv
 import cv2
 import numpy as np
 
-lines = []
+car_images = []
+steering_angles = []
+
+images_path = './data/IMG/'
+steering_correction = 0.2
+
 with open('./data/driving_log.csv') as csvfile:
     reader = csv.reader(csvfile)
     next(reader) # Skip the header
-    for line in reader:
-        lines.append(line)
-images = []
-measurements = []
-for line in lines:
-    source_path = line[0]
-    filename = source_path.split('/')[-1]
-    current_path = './data/IMG/' + filename
-    image = cv2.imread(current_path)
-    images.append(image)
-    measurement = float(line[3])
-    measurements.append(measurement)
-augmented_images, augmented_measurements = [], []
-for image, measurement in zip(images, measurements):
-    augmented_images.append(image)
-    augmented_measurements.append(measurement)
-    augmented_images.append(cv2.flip(image, 1))
-    augmented_measurements.append(measurement * -1.0)
+    for row in reader:
+        img_center = cv2.imread(images_path + row[0].split('/')[-1])
+        img_left = cv2.imread(images_path + row[1].split('/')[-1])
+        img_right = cv2.imread(images_path + row[2].split('/')[-1])
 
-X_train = np.array(augmented_images)
-y_train = np.array(augmented_measurements)
+        car_images.extend([img_center, img_left, img_right])
+
+        steering_center = float(row[3])
+        steering_left = steering_center + steering_correction
+        steering_right = steering_center - steering_correction
+        steering_angles.extend([steering_center, steering_left, steering_right])
 
 
+X_train = np.array(car_images)
+y_train = np.array(steering_angles)
+
+print(X_train.shape)
 from keras.models import Sequential
 from keras.layers import Flatten, Dense, Lambda
 from keras.layers.convolutional import Convolution2D
