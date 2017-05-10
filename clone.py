@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import sklearn
+import keras
 
 images_path = './data/IMG/'
 steering_correction = 0.2
@@ -47,6 +48,7 @@ from keras.models import Sequential
 from keras.layers import Flatten, Dense, Lambda, Cropping2D
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
+from keras.utils import plot_model
 
 train_generator = generator(train_samples, batch_size=32)
 validation_generator = generator(validation_samples, batch_size=32)
@@ -64,6 +66,11 @@ model.add(Dense(100))
 model.add(Dense(50))
 model.add(Dense(10))
 model.add(Dense(1))
+
+print(model.summary())
+plot_model(model, to_file='model.png')
+
+# model = make_parallel(model, 2)
 
 model.compile(loss='mse', optimizer='adam')
 # model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=5)
