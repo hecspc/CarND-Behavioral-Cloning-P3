@@ -21,7 +21,7 @@ from sklearn.model_selection import train_test_split
 train_samples, validation_samples = train_test_split(samples, test_size=0.2)
 
 
-def generator(samples, batch_size=32):
+def generator(samples, batch_size=64):
     num_samples = len(samples)
     while 1:
         sklearn.utils.shuffle(samples)
@@ -53,18 +53,34 @@ from keras.utils import plot_model
 train_generator = generator(train_samples, batch_size=32)
 validation_generator = generator(validation_samples, batch_size=32)
 
+
+def resize_images(img):
+    """Returns resized image
+    Cannot be directly used in lambda function
+    as tf is not understood by keras
+    """
+    import tensorflow as tf
+    return tf.image.resize_images(img, (66, 200))
+
 model = Sequential()
-model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=(160,320,3)))
-model.add(Cropping2D(cropping=((70,25), (0, 0))))
-model.add(Convolution2D(24, (5, 5), strides=(2, 2), activation="relu"))
-model.add(Convolution2D(36, (5, 5), strides=(2, 2), activation="relu"))
-model.add(Convolution2D(48, (5, 5), strides=(2, 2), activation="relu"))
-model.add(Convolution2D(64, (3, 3), activation="relu"))
-model.add(Convolution2D(64, (3, 3), activation="relu"))
+model.add(Lambda(resize_images, input_shape=input_shape))
+model.add(Lambda(lambda x: x/255.-0.5))
+model.add(Convolution2D(24, 5, 5, border_mode="same", subsample=(2,2), activation="elu"))
+model.add(SpatialDropout2D(0.2))
+model.add(Convolution2D(36, 5, 5, border_mode="same", subsample=(2,2), activation="elu"))
+model.add(SpatialDropout2D(0.2))
+model.add(Convolution2D(48, 5, 5, border_mode="valid", subsample=(2,2), activation="elu"))
+model.add(SpatialDropout2D(0.2))
+model.add(Convolution2D(64, 3, 3, border_mode="valid", activation="elu"))
+model.add(SpatialDropout2D(0.2))
+model.add(Convolution2D(64, 3, 3, border_mode="valid", activation="elu"))
+model.add(SpatialDropout2D(0.2))
 model.add(Flatten())
-model.add(Dense(100))
-model.add(Dense(50))
-model.add(Dense(10))
+model.add(Dropout(0.5))
+model.add(Dense(100, activation="elu"))
+model.add(Dense(50, activation="elu"))
+model.add(Dense(10, activation="elu"))
+model.add(Dropout(0.5))
 model.add(Dense(1))
 
 print(model.summary())
@@ -72,7 +88,7 @@ plot_model(model, to_file='model.png')
 
 # model = make_parallel(model, 2)
 
-model.compile(loss='mse', optimizer='adam')
+model.compile(optimizer=Adam(lr=0.001), loss='mse')
 # model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=5)
 #
 history_object = model.fit_generator(train_generator, steps_per_epoch =
