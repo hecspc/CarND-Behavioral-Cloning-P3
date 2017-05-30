@@ -6,7 +6,7 @@ import sklearn
 import keras
 
 images_path = './data/IMG/'
-steering_correction = 0.2
+steering_correction = 0.1
 samples = []
 with open('./data/driving_log.csv') as csvfile:
     reader = csv.reader(csvfile)
