@@ -45,9 +45,10 @@ def generator(samples, batch_size=64):
             yield sklearn.utils.shuffle(X_train, y_train)
 
 from keras.models import Sequential
-from keras.layers import Flatten, Dense, Lambda, Cropping2D
+from keras.layers import Flatten, Dense, Lambda, Cropping2D, Dropout, SpatialDropout2D, Activation
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
+from keras.optimizers import Adam
 from keras.utils import plot_model
 
 train_generator = generator(train_samples, batch_size=32)
@@ -63,17 +64,17 @@ def resize_images(img):
     return tf.image.resize_images(img, (66, 200))
 
 model = Sequential()
-model.add(Lambda(resize_images, input_shape=input_shape))
+model.add(Lambda(resize_images, input_shape=(160,320,3)))
 model.add(Lambda(lambda x: x/255.-0.5))
-model.add(Convolution2D(24, 5, 5, border_mode="same", subsample=(2,2), activation="elu"))
+model.add(Convolution2D(24, (5, 5), padding="same", strides=(2,2), activation="elu"))
 model.add(SpatialDropout2D(0.2))
-model.add(Convolution2D(36, 5, 5, border_mode="same", subsample=(2,2), activation="elu"))
+model.add(Convolution2D(36, (5, 5), padding="same", strides=(2,2), activation="elu"))
 model.add(SpatialDropout2D(0.2))
-model.add(Convolution2D(48, 5, 5, border_mode="valid", subsample=(2,2), activation="elu"))
+model.add(Convolution2D(48, (5, 5), padding="valid", strides=(2,2), activation="elu"))
 model.add(SpatialDropout2D(0.2))
-model.add(Convolution2D(64, 3, 3, border_mode="valid", activation="elu"))
+model.add(Convolution2D(64, (3, 3), padding="valid", activation="elu"))
 model.add(SpatialDropout2D(0.2))
-model.add(Convolution2D(64, 3, 3, border_mode="valid", activation="elu"))
+model.add(Convolution2D(64, (3, 3), padding="valid", activation="elu"))
 model.add(SpatialDropout2D(0.2))
 model.add(Flatten())
 model.add(Dropout(0.5))
