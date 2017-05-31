@@ -5,13 +5,14 @@ import matplotlib.pyplot as plt
 import sklearn
 import keras
 
-BATCH_SIZE = 64
-EPOCHS=1
-images_path = './data/IMG/'
+BATCH_SIZE = 256
+EPOCHS=6
+DATA_PATH = './data/newdata'
+images_path = DATA_PATH + '/IMG/'
 steering_correction = 0.1
 samples = []
 rows_dropped = 0
-with open('./data/driving_log.csv') as csvfile:
+with open(DATA_PATH + '/driving_log.csv') as csvfile:
     reader = csv.reader(csvfile)
     next(reader) # Skip the header
     for row in reader:
@@ -60,7 +61,7 @@ from keras.layers import Flatten, Dense, Lambda, Cropping2D, Dropout, SpatialDro
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
 from keras.optimizers import Adam
-from keras.utils import plot_model
+# from keras.utils import plot_model
 
 train_generator = generator(train_samples, batch_size=BATCH_SIZE)
 validation_generator = generator(validation_samples, batch_size=BATCH_SIZE)
@@ -76,15 +77,8 @@ def resize_images(img):
 
 
 
-#
-# def preprocess_img(img):
-#     """Returns croppped image
-#     """
-#     return img[60:135, : ]
-
-
 model = Sequential()
-model.add(Cropping2D(cropping=((70,25), (0, 0)), input_shape=(160,320,3)))
+model.add(Cropping2D(cropping=((60,30), (0, 0)), input_shape=(160,320,3)))
 model.add(Lambda(resize_images))
 model.add(Lambda(lambda x: x/255.-0.5))
 model.add(Convolution2D(24, (5, 5), padding="same", strides=(2,2), activation="elu"))
@@ -106,7 +100,7 @@ model.add(Dropout(0.5))
 model.add(Dense(1))
 
 print(model.summary())
-plot_model(model, to_file='model.png')
+# plot_model(model, to_file='model.png')
 
 # model = make_parallel(model, 2)
 
