@@ -5,23 +5,34 @@ import matplotlib.pyplot as plt
 import sklearn
 import keras
 
+BATCH_SIZE = 64
+EPOCHS=1
 images_path = './data/IMG/'
 steering_correction = 0.1
 samples = []
+rows_dropped = 0
 with open('./data/driving_log.csv') as csvfile:
     reader = csv.reader(csvfile)
     next(reader) # Skip the header
     for row in reader:
-        samples.append(row)
+        if (float(row[3]) < .05 and np.random.randint(10) > 2 ):
+            samples.append(row)
+            rows_dropped += 1
+print("Dropped %s rows with low steering"%(rows_dropped))
 
+
+# # Randomly decrease data with low steering angle
+# index = samples[abs(samples[3])<.05].index.tolist()
+# rows = [i for i in index if np.random.randint(10) < 8]
+# samples = samples.drop(samples.index[rows])
+# print("Dropped %s rows with low steering"%(len(rows)))
 
 
 from sklearn.model_selection import train_test_split
-
 train_samples, validation_samples = train_test_split(samples, test_size=0.2)
 
 
-def generator(samples, batch_size=64):
+def generator(samples, batch_size=BATCH_SIZE):
     num_samples = len(samples)
     while 1:
         sklearn.utils.shuffle(samples)
@@ -51,8 +62,8 @@ from keras.layers.pooling import MaxPooling2D
 from keras.optimizers import Adam
 from keras.utils import plot_model
 
-train_generator = generator(train_samples, batch_size=32)
-validation_generator = generator(validation_samples, batch_size=32)
+train_generator = generator(train_samples, batch_size=BATCH_SIZE)
+validation_generator = generator(validation_samples, batch_size=BATCH_SIZE)
 
 
 def resize_images(img):
@@ -63,8 +74,18 @@ def resize_images(img):
     import tensorflow as tf
     return tf.image.resize_images(img, (66, 200))
 
+
+
+#
+# def preprocess_img(img):
+#     """Returns croppped image
+#     """
+#     return img[60:135, : ]
+
+
 model = Sequential()
-model.add(Lambda(resize_images, input_shape=(160,320,3)))
+model.add(Cropping2D(cropping=((70,25), (0, 0)), input_shape=(160,320,3)))
+model.add(Lambda(resize_images))
 model.add(Lambda(lambda x: x/255.-0.5))
 model.add(Convolution2D(24, (5, 5), padding="same", strides=(2,2), activation="elu"))
 model.add(SpatialDropout2D(0.2))
@@ -96,7 +117,7 @@ history_object = model.fit_generator(train_generator, steps_per_epoch =
     len(train_samples), validation_data =
     validation_generator,
     validation_steps = len(validation_samples),
-    epochs=5, verbose=1)
+    epochs=EPOCHS, verbose=1)
 
 model.save('model.h5')
 
