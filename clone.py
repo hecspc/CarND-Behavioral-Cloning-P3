@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import sklearn
 import keras
 
-BATCH_SIZE = 256
-EPOCHS=6
-DATA_PATH = './data/newdata'
+BATCH_SIZE = 64
+EPOCHS=2
+DATA_PATH = './data/provided'
 images_path = DATA_PATH + '/IMG/'
 steering_correction = 0.1
 samples = []
@@ -16,8 +16,9 @@ with open(DATA_PATH + '/driving_log.csv') as csvfile:
     reader = csv.reader(csvfile)
     next(reader) # Skip the header
     for row in reader:
-        if (float(row[3]) < .05 and np.random.randint(10) > 2 ):
+        if (float(row[3]) >= .05 or (float(row[3]) < .05 and np.random.randint(10) < 2) ):
             samples.append(row)
+        else:
             rows_dropped += 1
 print("Dropped %s rows with low steering"%(rows_dropped))
 
