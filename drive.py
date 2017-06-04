@@ -3,7 +3,7 @@ import base64
 from datetime import datetime
 import os
 import shutil
-
+import cv2
 import numpy as np
 import socketio
 import eventlet
@@ -44,12 +44,15 @@ class SimplePIController:
 
 
 controller = SimplePIController(0.1, 0.002)
-set_speed = 9
+set_speed = 25
 controller.set_desired(set_speed)
+angle = 0
+is_stuck = False
 
 
 @sio.on('telemetry')
 def telemetry(sid, data):
+    global angle, is_stuck
     if data:
         # The current steering angle of the car
         steering_angle = data["steering_angle"]
@@ -60,16 +63,30 @@ def telemetry(sid, data):
         # The current image from the center camera of the car
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
+        # image_array = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2YUV)
         image_array = np.asarray(image)
-        print(len(image_array))
-        image_arr = image_array[60:135, : ]
-        print(len(image_arr))
-        print('---------------------')
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
-
+        if np.abs(steering_angle) > 0.7:
+            controller.set_desired(9)
+        elif np.abs(steering_angle) > 0.5:
+            controller.set_desired(15)
+        elif np.abs(steering_angle) > 0.2:
+            controller.set_desired(19)
+        else:
+            controller.set_desired(30)
         throttle = controller.update(float(speed))
-
-        print(steering_angle, throttle)
+        if float(speed) > (controller.set_point + 10):
+            throttle -= 100
+            print("Slamming on brakes!")
+        angle = angle*0.0 + 1*steering_angle
+        if float(speed) == 0:
+            if not is_stuck:
+                is_stuck = True
+            else:
+                throttle = -50  # a hack to 'unstick'
+        elif is_stuck:
+            is_stuck = False
+        # print(steering_angle, throttle)
         send_control(steering_angle, throttle)
 
         # save frame
