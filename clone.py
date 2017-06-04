@@ -6,28 +6,21 @@ import sklearn
 import keras
 
 BATCH_SIZE = 64
-EPOCHS=2
+EPOCHS=5
 DATA_PATH = './data/provided'
 images_path = DATA_PATH + '/IMG/'
-steering_correction = 0.1
+steering_correction = 0.2
 samples = []
 rows_dropped = 0
 with open(DATA_PATH + '/driving_log.csv') as csvfile:
     reader = csv.reader(csvfile)
     next(reader) # Skip the header
     for row in reader:
-        if (float(row[3]) >= .05 or (float(row[3]) < .05 and np.random.randint(10) < 2) ):
+        if (True or abs(float(row[3])) >= 0.05 or (abs(float(row[3])) < 0.05 and np.random.randint(10) <= 2)):
             samples.append(row)
-        else:
+        else : 
             rows_dropped += 1
 print("Dropped %s rows with low steering"%(rows_dropped))
-
-
-# # Randomly decrease data with low steering angle
-# index = samples[abs(samples[3])<.05].index.tolist()
-# rows = [i for i in index if np.random.randint(10) < 8]
-# samples = samples.drop(samples.index[rows])
-# print("Dropped %s rows with low steering"%(len(rows)))
 
 
 from sklearn.model_selection import train_test_split
@@ -46,13 +39,16 @@ def generator(samples, batch_size=BATCH_SIZE):
                 img_center = cv2.imread(images_path + batch_sample[0].split('/')[-1])
                 img_left = cv2.imread(images_path + batch_sample[1].split('/')[-1])
                 img_right = cv2.imread(images_path + batch_sample[2].split('/')[-1])
-
-                car_images.extend([img_center, img_left, img_right])
+                img_center_flipped = np.fliplr(img_center)
+                img_left_flipped = np.fliplr(img_left)
+                img_right_flipped = np.fliplr(img_right)
+                
+                car_images.extend([img_center, img_left, img_right, img_center_flipped, img_left_flipped, img_right_flipped])
 
                 steering_center = float(batch_sample[3])
                 steering_left = steering_center + steering_correction
                 steering_right = steering_center - steering_correction
-                steering_angles.extend([steering_center, steering_left, steering_right])
+                steering_angles.extend([steering_center, steering_left, steering_right, -steering_center, -steering_left, -steering_right])
             X_train = np.array(car_images)
             y_train = np.array(steering_angles)
             yield sklearn.utils.shuffle(X_train, y_train)
@@ -79,45 +75,42 @@ def resize_images(img):
 
 
 model = Sequential()
-model.add(Cropping2D(cropping=((60,30), (0, 0)), input_shape=(160,320,3)))
-model.add(Lambda(resize_images))
+model.add(Cropping2D(cropping=((55,25), (20, 20)), input_shape=(160,320,3)))
+# model.add(Lambda(resize_images))
 model.add(Lambda(lambda x: x/255.-0.5))
-model.add(Convolution2D(24, (5, 5), padding="same", strides=(2,2), activation="elu"))
-model.add(SpatialDropout2D(0.2))
-model.add(Convolution2D(36, (5, 5), padding="same", strides=(2,2), activation="elu"))
-model.add(SpatialDropout2D(0.2))
-model.add(Convolution2D(48, (5, 5), padding="valid", strides=(2,2), activation="elu"))
-model.add(SpatialDropout2D(0.2))
-model.add(Convolution2D(64, (3, 3), padding="valid", activation="elu"))
-model.add(SpatialDropout2D(0.2))
-model.add(Convolution2D(64, (3, 3), padding="valid", activation="elu"))
-model.add(SpatialDropout2D(0.2))
+model.add(Convolution2D(24, (5, 5), strides=(2,2), activation="relu"))
+model.add(Convolution2D(36, (5, 5), strides=(2,2), activation="relu"))
+model.add(Convolution2D(48, (5, 5), strides=(2,2), activation="relu"))
+model.add(Convolution2D(64, (3, 3), activation="relu"))
+model.add(Convolution2D(64, (3, 3), activation="relu"))
+model.add(Convolution2D(64, (3, 3), activation="relu"))
+# model.add(SpatialDropout2D(0.2))
 model.add(Flatten())
+# model.add(Dropout(0.5))
+model.add(Dense(100, activation="relu"))
 model.add(Dropout(0.5))
-model.add(Dense(100, activation="elu"))
-model.add(Dense(50, activation="elu"))
-model.add(Dense(10, activation="elu"))
+model.add(Dense(50, activation="relu"))
 model.add(Dropout(0.5))
-model.add(Dense(1))
+model.add(Dense(20, activation="relu"))
+model.add(Dropout(0.2))
+model.add(Dense(1, activation="tanh", use_bias=False))
 
 print(model.summary())
 # plot_model(model, to_file='model.png')
 
 # model = make_parallel(model, 2)
 
-model.compile(optimizer=Adam(lr=0.001), loss='mse')
+model.compile(optimizer='adam', loss='mse')
 # model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=5)
 #
 history_object = model.fit_generator(train_generator, steps_per_epoch =
-    len(train_samples), validation_data =
+    len(train_samples) * 6 / BATCH_SIZE, validation_data =
     validation_generator,
-    validation_steps = len(validation_samples),
+    validation_steps = len(validation_samples) * 6 / BATCH_SIZE,
     epochs=EPOCHS, verbose=1)
 
 model.save('model.h5')
 
-### print the keys contained in the history object
-print(history_object.history.keys())
 
 plt.plot(history_object.history['loss'])
 plt.plot(history_object.history['val_loss'])
