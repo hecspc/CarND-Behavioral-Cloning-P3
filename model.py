@@ -159,7 +159,7 @@ reduce_lr = keras.callbacks.ReduceLROnPlateau(
     monitor='val_loss', factor=0.2,
     patience=3, min_lr=0.0001)
 # Stop if validation loss does not reduce
-early_stop_callBack = keras.callbacks.EarlyStopping(monitor='val_loss',
+early_stop_callback = keras.callbacks.EarlyStopping(monitor='val_loss',
     min_delta=0.0005, patience=5, verbose=0, mode='auto')
 
 model.compile(optimizer=Adam(lr=0.001), loss='mse')
@@ -169,7 +169,7 @@ history_object = model.fit_generator(train_generator, steps_per_epoch =
     validation_generator,
     validation_steps = len(validation_samples) / BATCH_SIZE,
     epochs=EPOCHS, verbose=1,
-    callbacks=[tensorboard_callback, checkpoint_callback, reduce_lr, early_stop_callBack])
+    callbacks=[tensorboard_callback, checkpoint_callback, reduce_lr, early_stop_callback])
 
 model.save('model.h5')
 

@@ -64,11 +64,11 @@ def telemetry(sid, data):
         image_array = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2YUV)
         # image_array = np.asarray(image)
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
-        if np.abs(steering_angle) > 0.7:
+        if np.abs(steering_angle) > 0.75:
             controller.set_desired(max_speed * .25)
         elif np.abs(steering_angle) > 0.5:
             controller.set_desired(max_speed * .5)
-        elif np.abs(steering_angle) > 0.2:
+        elif np.abs(steering_angle) > 0.25:
             controller.set_desired(max_speed * .75)
         else:
             controller.set_desired(max_speed)
