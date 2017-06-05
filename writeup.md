@@ -231,5 +231,7 @@ During the training process, I used the fit_generator method. I also used a set 
  At the end, the model stopped training at the epoch 9 with a training loss value of 0.0065 and a validation loss of 0.01535, as it is shown in the next figure:
  
  ![loss_graph][loss_graph]
+ 
+ In the file `run.mp4` there is a video with a lap following these specifications.
 
 
