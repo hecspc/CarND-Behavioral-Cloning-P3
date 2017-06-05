@@ -34,6 +34,29 @@ def loadImage(image_name, doFlip):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
     return image
 
+def add_random_shadow(image):
+    # image is in YUV
+    top_y = 320*np.random.uniform()
+    top_x = 0
+    bot_x = 160
+    bot_y = 320*np.random.uniform()
+    shadow_mask = np.zeros(image.shape[:2])
+    X_m = np.mgrid[0:image.shape[0],0:image.shape[1]][0]
+    Y_m = np.mgrid[0:image.shape[0],0:image.shape[1]][1]
+
+    shadow_mask[((X_m-top_x)*(bot_y-top_y) -(bot_x - top_x)*(Y_m-top_y) >=0)]=1
+    #random_bright = .25+.7*np.random.uniform()
+    if np.random.randint(2)==1:
+        random_bright = .5
+        cond1 = shadow_mask==1
+        cond0 = shadow_mask==0
+        if np.random.randint(2)==1:
+            image[:,:,0][cond1] = image[:,:,0][cond1]*random_bright
+        else:
+            image[:,:,0][cond0] = image[:,:,0][cond0]*random_bright
+
+    return image
+    
 def randomModification(image, angle):
     # Image is in YUV
     if np.random.randint(5) == 0:
