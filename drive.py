@@ -44,11 +44,8 @@ class SimplePIController:
 
 
 controller = SimplePIController(0.1, 0.002)
-set_speed = 15
-controller.set_desired(set_speed)
-angle = 0
-is_stuck = False
-max_speed = 35
+max_speed = 15
+controller.set_desired(max_speed)
 
 @sio.on('telemetry')
 def telemetry(sid, data):
@@ -63,8 +60,9 @@ def telemetry(sid, data):
         # The current image from the center camera of the car
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
-        # image_array = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2YUV)
-        image_array = np.asarray(image)
+        # In the model we use the images in the YUV color space
+        image_array = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2YUV)
+        # image_array = np.asarray(image)
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
         if np.abs(steering_angle) > 0.7:
             controller.set_desired(max_speed * .25)
@@ -75,18 +73,10 @@ def telemetry(sid, data):
         else:
             controller.set_desired(max_speed)
         throttle = controller.update(speed)
-        if speed > (controller.set_point + 10):
-            throttle -= 100
-            print("Slamming on brakes!")
+        # we brake if current speed is much higher than target speed
+        if speed > (controller.set_point + 5):
+            throttle -= 150
 
-        if speed == 0:
-            if not is_stuck:
-                is_stuck = True
-            else:
-                throttle = -100  # a hack to 'unstick'
-        elif is_stuck:
-            is_stuck = False
-        # print(steering_angle, throttle)
         send_control(steering_angle, throttle)
 
         # save frame
