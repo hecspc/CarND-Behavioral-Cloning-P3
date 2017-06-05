@@ -29,7 +29,7 @@ def loadImage(image_name, doFlip):
     if doFlip:
         image = cv2.flip(image, 1)
     # Convert to YUV
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
+    # image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
     return image
 
 def add_random_shadow(image):
@@ -73,7 +73,7 @@ def randomModification(image, angle):
     angle = np.clip(angle, -1,1)
     h,w,ch = image.shape
     pts1 = np.float32([[20,0],[w-20,0],[20,h/2],[w-20,h/2]])
-    pts2 = np.float32([[20+shift,0],[w-20+shift,0],[20+shift2,h/2+height_shift],[w-20+shift2,h/2+height_shift]])
+    pts2 = np.float32([[20+shift,0],[w-20+shift,0],[20+shift,h/2+height_shift],[w-20+shift,h/2+height_shift]])
     M = cv2.getPerspectiveTransform(pts1, pts2)
     image = cv2.warpPerspective(image,M,(w,h), borderMode=cv2.BORDER_REPLICATE)
     return image, angle
@@ -117,7 +117,7 @@ from keras.layers import Flatten, Dense, Lambda, Cropping2D, Dropout, SpatialDro
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
 from keras.optimizers import Adam
-# from keras.utils import plot_model
+from keras.utils import plot_model
 
 train_generator = generator(train_samples, batch_size=BATCH_SIZE, is_training=True)
 validation_generator = generator(validation_samples, batch_size=BATCH_SIZE, is_training=False)
@@ -161,13 +161,35 @@ earlyStopCallBack = keras.callbacks.EarlyStopping(monitor='val_loss',
 
 model.compile(optimizer=Adam(lr=0.001), loss='mse')
 
-history_object = model.fit_generator(train_generator, steps_per_epoch =
-    len(train_samples) * 7 / BATCH_SIZE, validation_data =
-    validation_generator,
-    validation_steps = len(validation_samples) / BATCH_SIZE,
-    epochs=EPOCHS, verbose=1,
-    callbacks=[tbCallBack, checkpointCallback, reduce_lr, earlyStopCallBack])
+# history_object = model.fit_generator(train_generator, steps_per_epoch =
+#     len(train_samples) * 7 / BATCH_SIZE, validation_data =
+#     validation_generator,
+#     validation_steps = len(validation_samples) / BATCH_SIZE,
+#     epochs=EPOCHS, verbose=1,
+#     callbacks=[tbCallBack, checkpointCallback, reduce_lr, earlyStopCallBack])
 
-model.save('model.h5')
+# model.save('model.h5')
+#
 
+def plot_random_image():
+    batch_sample = samples[np.random.randint(len(samples))]
+    img_center = loadImage(images_path + batch_sample[0].split('/')[-1], False)
+    img_left = loadImage(images_path + batch_sample[1].split('/')[-1], False)
+    img_right = loadImage(images_path + batch_sample[2].split('/')[-1], False)
+    img_center_flipped = loadImage(images_path + batch_sample[0].split('/')[-1], True)
+    img_left_flipped = loadImage(images_path + batch_sample[1].split('/')[-1], True)
+    img_right_flipped = loadImage(images_path + batch_sample[2].split('/')[-1], True)
+    img_shift, steering_shift = randomModification(img_center, 0)
+    fig, ax = plt.subplots(nrows=4, ncols=1)
+    ax.axis("off")
+    ax.plot(cv2.cvtColor(img_left, cv2.COLOR_BGR2RGB))
+    ax.plot(cv2.cvtColor(img_center, cv2.COLOR_BGR2RGB))
+    ax.plot(cv2.cvtColor(img_right, cv2.COLOR_BGR2RGB))
+    ax.plot(cv2.cvtColor(img_left_flipped, cv2.COLOR_BGR2RGB))
+    ax.plot(cv2.cvtColor(img_center_flipped, cv2.COLOR_BGR2RGB))
+    ax.plot(cv2.cvtColor(img_right_flipped, cv2.COLOR_BGR2RGB))
+    ax.plot(cv2.cvtColor(img_shift, cv2.COLOR_BGR2RGB))
+    fig.savefig('images/traning_set.png')
+    plt.show()
+plot_random_image()
 exit()
