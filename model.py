@@ -24,12 +24,15 @@ from sklearn.model_selection import train_test_split
 # from the samples we use 20% for validation
 train_samples, validation_samples = train_test_split(samples, test_size=0.2)
 
+print("Total train samples %s"%(len(samp) * 7))
+exit()
+
 def loadImage(image_name, doFlip):
     image = cv2.imread(image_name, cv2.IMREAD_COLOR) # Return BGR
     if doFlip:
         image = cv2.flip(image, 1)
     # Convert to YUV
-    # image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
     return image
 
 def add_random_shadow(image):
@@ -144,11 +147,11 @@ print(model.summary())
 plot_model(model, to_file='model.png')
 
 # Callback for Tensorboard visualization
-tbCallBack = keras.callbacks.TensorBoard(
+tensorboard_callback = keras.callbacks.TensorBoard(
     log_dir='./log', histogram_freq=1, write_graph=True, write_images=True,
     embeddings_freq=1, embeddings_layer_names=None, embeddings_metadata=None)
 # Saving the model when the validation loss get lower
-checkpointCallback = keras.callbacks.ModelCheckpoint(
+checkpoint_callback = keras.callbacks.ModelCheckpoint(
     'model.{epoch:02d}-{val_loss:.2f}.h5', monitor='val_loss', verbose=1,
     save_best_only=True, save_weights_only=False, mode='auto', period=1)
 # Reduce the learning rate if validation loss is stuck
@@ -156,40 +159,19 @@ reduce_lr = keras.callbacks.ReduceLROnPlateau(
     monitor='val_loss', factor=0.2,
     patience=3, min_lr=0.0001)
 # Stop if validation loss does not reduce
-earlyStopCallBack = keras.callbacks.EarlyStopping(monitor='val_loss',
+early_stop_callBack = keras.callbacks.EarlyStopping(monitor='val_loss',
     min_delta=0.0005, patience=5, verbose=0, mode='auto')
 
 model.compile(optimizer=Adam(lr=0.001), loss='mse')
 
-# history_object = model.fit_generator(train_generator, steps_per_epoch =
-#     len(train_samples) * 7 / BATCH_SIZE, validation_data =
-#     validation_generator,
-#     validation_steps = len(validation_samples) / BATCH_SIZE,
-#     epochs=EPOCHS, verbose=1,
-#     callbacks=[tbCallBack, checkpointCallback, reduce_lr, earlyStopCallBack])
+history_object = model.fit_generator(train_generator, steps_per_epoch =
+    len(train_samples) * 7 / BATCH_SIZE, validation_data =
+    validation_generator,
+    validation_steps = len(validation_samples) / BATCH_SIZE,
+    epochs=EPOCHS, verbose=1,
+    callbacks=[tensorboard_callback, checkpoint_callback, reduce_lr, early_stop_callBack])
 
-# model.save('model.h5')
-#
+model.save('model.h5')
 
-def plot_random_image():
-    batch_sample = samples[np.random.randint(len(samples))]
-    img_center = loadImage(images_path + batch_sample[0].split('/')[-1], False)
-    img_left = loadImage(images_path + batch_sample[1].split('/')[-1], False)
-    img_right = loadImage(images_path + batch_sample[2].split('/')[-1], False)
-    img_center_flipped = loadImage(images_path + batch_sample[0].split('/')[-1], True)
-    img_left_flipped = loadImage(images_path + batch_sample[1].split('/')[-1], True)
-    img_right_flipped = loadImage(images_path + batch_sample[2].split('/')[-1], True)
-    img_shift, steering_shift = randomModification(img_center, 0)
-    fig, ax = plt.subplots(nrows=4, ncols=1)
-    ax.axis("off")
-    ax.plot(cv2.cvtColor(img_left, cv2.COLOR_BGR2RGB))
-    ax.plot(cv2.cvtColor(img_center, cv2.COLOR_BGR2RGB))
-    ax.plot(cv2.cvtColor(img_right, cv2.COLOR_BGR2RGB))
-    ax.plot(cv2.cvtColor(img_left_flipped, cv2.COLOR_BGR2RGB))
-    ax.plot(cv2.cvtColor(img_center_flipped, cv2.COLOR_BGR2RGB))
-    ax.plot(cv2.cvtColor(img_right_flipped, cv2.COLOR_BGR2RGB))
-    ax.plot(cv2.cvtColor(img_shift, cv2.COLOR_BGR2RGB))
-    fig.savefig('images/traning_set.png')
-    plt.show()
-plot_random_image()
+
 exit()
